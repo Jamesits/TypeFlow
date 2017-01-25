@@ -1,3 +1,7 @@
+* {
+    box-sizing: border-box;
+}
+
 /* remove blue blurry outline on focused textboxes */
 *:focus {
     outline: none;
@@ -33,9 +37,6 @@ html, body {
     display: flex;
     flex-direction: column;
     height: 100%;
-    /* add some padding */
-    margin-left: 20px;
-    margin-right: 20px;
     /* align child items to center */
     align-items: center;
     justify-content: center;
@@ -48,12 +49,14 @@ html, body {
     flex-direction: column;
     width: 100%;
     overflow: hidden;
+    /* add some padding */
+    padding-left: 20px;
+    padding-right: 20px;
 }
 
 #reference {
     /* put itself to the bottom of container */
     margin-top: auto;
-
 }
 
 #userinput, #userinput-dup {

@@ -10,6 +10,9 @@ function setTypeMarginLineOffset(offset) {
 var imeCompositionLock = false;
 var caretLeft = 0;
 var commitedUserInputContentLength = 0;
+var userHasStartedTyping = false;
+var userLastKeyHitTime = 0;
+var userRealtimeHitInterval = 0;
 
 function onUserInput(e) {
     var ref = document.getElementById("reference");
@@ -20,7 +23,20 @@ function onUserInput(e) {
     // event handling
     if (e && e.type) {
         // debug
-        console.log(e.type, inp.value);
+        // console.log(e.type, inp.value);
+
+        // real-time scoring
+        if (!userHasStartedTyping && e.type.startsWith("key")) {
+            userHasStartedTyping = true;
+            userLastKeyHitTime = performance.now();
+        }
+        if (e.type == "keydown") {
+            var currentTime = performance.now();
+            userRealtimeHitInterval = currentTime - userLastKeyHitTime;
+            userLastKeyHitTime = currentTime;
+            // hence we've got realtime hit interval in ms
+            // APM = 60000 / userRealtimeHitInterval
+        }
 
         // Asian IME trigger lock
         if (e.type == "compositionstart") imeCompositionLock = true;
