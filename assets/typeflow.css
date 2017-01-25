@@ -4,12 +4,19 @@
 }
 
 textarea {
+    padding-left: 0;
+    padding-right: 0;
     border-width: 0;
     font-size: 48pt;
     font-family: monospace;
     user-select: none;
     /* disable automatic line breaks */
     white-space: nowrap;
+    /* disable scrolling */
+    overflow: hidden;
+    /* disable resize control */
+    resize: none;
+    /* disable scrolling */
     overflow: hidden;
 }
 
@@ -25,13 +32,10 @@ html, body {
     /* fill window as flexbox container */
     display: flex;
     flex-direction: column;
-    top: 0;
-    left: 0;
-    width: 100%;
     height: 100%;
     /* add some padding */
-    padding-left: 20px;
-    padding-right: 20px;
+    margin-left: 20px;
+    margin-right: 20px;
     /* align child items to center */
     align-items: center;
     justify-content: center;
@@ -43,19 +47,25 @@ html, body {
     display: flex;
     flex-direction: column;
     width: 100%;
+    overflow: hidden;
 }
 
 #reference {
     /* put itself to the bottom of container */
     margin-top: auto;
-    /* fill page */
-    resize: none;
+
 }
 
-#userinput {
+#userinput, #userinput-dup {
     align-self: flex-start;
     /* let it fill the left half of page */
     flex: 1;
+}
+
+#userinput-dup {
+    /* set a minimal width so we can get its content width by scrollWidth */
+    width: 1px;
+    visibility: hidden;
 }
 
 #type-margin {

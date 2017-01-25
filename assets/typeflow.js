@@ -1,39 +1,44 @@
-function getUserInputTextWidth() {
-    return document.getElementById("userinput").clientWidth;
-}
+/* ===== options ===== */
+var splitRatio = 0.38;
 
-function setReferenceTextOffsetInPixels(offset) {
-    var o = getUserInputTextWidth() - offset;
-    document.getElementById("reference").style.marginLeft = o + "px";
-    if (o >= 0) {
-        document.getElementById("userinput").style.marginLeft = o + "px";
-    } else {
-        document.getElementById("userinput").style.marginLeft = "0";
-    }
-}
+/* ===== options end ===== */
 
 function setTypeMarginLineOffset(offset) {
     document.getElementById("type-margin").style.marginLeft = offset + "px";
 }
 
-function syncReferenceTextOffset(e) {
+var imeCompositionLock = false;
+var caretLeft = 0;
+var commitedUserInputContentLength = 0;
+
+function onUserInput(e) {
     var ref = document.getElementById("reference");
     var inp = document.getElementById("userinput");
-
-    // kill return ("\n")
-    if (e && e.type && e.type == "keyup" && e.keyCode == 13) {
-        inp.value = inp.value.replace("\n", "");
-    }
-
+    var inp_dup = document.getElementById("userinput-dup");
     var predict_leap = 0;
-    // do keyboard operation prediction
-    // so we can achieve a "zero-latency" sync between reference and user input
-    if (e && e.type && (e.type == "keydown" || e.type == "keypress")) {
+
+    // event handling
+    if (e && e.type) {
+        // debug
+        console.log(e.type, inp.value);
+
+        // Asian IME trigger lock
+        if (e.type == "compositionstart") imeCompositionLock = true;
+        if (e.type == "compositionend") imeCompositionLock = false;
+
+        // kill return ("\n")
+        if (e.type == "keyup" && e.keyCode == 13) {
+            inp.value = inp.value.replace("\n", "");
+        }
+
+        // do keyboard operation prediction
+        // so we can achieve a "zero-latency" sync between reference and user input
         if (e.type == "keypress") {  // in this case keycode is an ASCII code
             if (e.keyCode > 31) {
                 predict_leap = 1;
             }
-        } else {    // thus an real keycode
+        }
+        if (e.type == "keydown") {    // thus an real keycode
             if (
                 (e.keyCode == 8 || e.keyCode == 46) // backspace and delete
                 && inp.value.length <= ref.value.length
@@ -52,12 +57,34 @@ function syncReferenceTextOffset(e) {
         }
     }
 
-    // calculate textarea width
-    var textlength = Math.min(ref.value.length, inp.value.length);
-    var coordinates = getCaretCoordinates(ref, textlength + predict_leap);
-    setReferenceTextOffsetInPixels(coordinates.left);
-    setTypeMarginLineOffset(inp.clientLeft + inp.clientWidth);
-    cancelSelection();
+    // set green line to the right of input
+    caretLeft = document.getElementById("container").clientWidth * splitRatio;
+    setTypeMarginLineOffset(caretLeft);
+
+    // stretch user input
+    inp_dup.value = inp.value;
+    if (predict_leap >= 0) {
+        inp_dup.value += " ".repeat(predict_leap);
+    } else {
+        inp_dup.value = inp_dup.value.slice(0, predict_leap);
+    }
+    inp.style.width = inp_dup.scrollWidth + "px";
+
+    if (!imeCompositionLock) {  // if not in Asian IME composition mode
+        // calculate textarea width
+        var textlength = Math.min(ref.value.length, inp.value.length);
+        // sync two textareas
+        inp.style.marginLeft = ref.style.marginLeft = caretLeft - getCaretCoordinates(ref, textlength + predict_leap).left + "px";
+
+        // set caret (cursor) to the rightmost position
+        cancelSelection();
+
+        commitedUserInputContentLength = inp.value.length;
+    } else {
+        // let uncommected text appear at right side of caret line
+        inp.style.marginLeft = caretLeft - getCaretCoordinates(inp, commitedUserInputContentLength + predict_leap).left + "px";
+    }
+
     return true;
 }
 
@@ -75,11 +102,16 @@ function cancelSelection(e) {
 }
 
 function onDocumentReady() {
-    window.addEventListener("resize", syncReferenceTextOffset);
-    document.getElementById("userinput").addEventListener("change", syncReferenceTextOffset);
-    document.getElementById("userinput").addEventListener("keypress", syncReferenceTextOffset);
-    document.getElementById("userinput").addEventListener("keydown", syncReferenceTextOffset);
-    document.getElementById("userinput").addEventListener("keyup", syncReferenceTextOffset);
+    var ref = document.getElementById("reference");
+    var inp = document.getElementById("userinput");
+
+    window.addEventListener("resize", onUserInput);
+    inp.addEventListener("change", onUserInput);
+    inp.addEventListener("keypress", onUserInput);
+    inp.addEventListener("keydown", onUserInput);
+    inp.addEventListener("keyup", onUserInput);
+    inp.addEventListener("compositionstart", onUserInput);
+    inp.addEventListener("compositionend", onUserInput);
 
     /* focus on input when page is activated */
     document.addEventListener("visibilitychange", setUserInputTextareaFocused);
@@ -87,12 +119,12 @@ function onDocumentReady() {
     document.addEventListener("keydown", setUserInputTextareaFocused);
 
     /* disable cursor movement and selection on user input textarea */
-    document.getElementById("userinput").addEventListener("mousedown", cancelSelection);
-    document.getElementById("userinput").addEventListener("selectionchange", cancelSelection);
-    document.getElementById("reference").addEventListener("mousedown", cancelSelection);
-    document.getElementById("reference").addEventListener("selectionchange", cancelSelection);
+    inp.addEventListener("mousedown", cancelSelection);
+    inp.addEventListener("selectionchange", cancelSelection);
+    ref.addEventListener("mousedown", cancelSelection);
+    ref.addEventListener("selectionchange", cancelSelection);
 
-    syncReferenceTextOffset();
+    onUserInput();
 }
 
 /* this runs onDocumentReady when page has loaded */
